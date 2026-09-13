@@ -6,19 +6,26 @@ import 'package:provider/provider.dart';
 import 'data/models/cart_item_model.dart';
 import 'data/repositories/cart_repository_impl.dart';
 import 'domain/usecases/add_to_cart_use_case.dart';
+import 'domain/usecases/remove_from_cart_use_case.dart';
+import 'domain/usecases/update_cart_quantity_use_case.dart';
 import 'presentation/providers/cart_provider.dart';
-import 'presentation/screens/home/product_detail_screen.dart';
+import 'presentation/screens/cart_screen.dart';
+import 'presentation/screens/product_detail_screen.dart';
 
 void main() {
   final httpClient = http.Client();
   final cartRepository = CartRepositoryImpl(client: httpClient);
   final addToCartUseCase = AddToCartUseCase(cartRepository);
+  final updateCartQuantityUseCase = UpdateCartQuantityUseCase(cartRepository);
+  final removeFromCartUseCase = RemoveFromCartUseCase(cartRepository);
 
   runApp(
     ChangeNotifierProvider(
       create: (_) => CartProvider(
         repository: cartRepository,
         addToCartUseCase: addToCartUseCase,
+        updateCartQuantityUseCase: updateCartQuantityUseCase,
+        removeFromCartUseCase: removeFromCartUseCase,
       ),
       child: const MercadoSueltoApp(),
     ),
@@ -61,7 +68,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
       final List data = json.decode(response.body);
       return data.map((json) => Product.fromJson(json)).toList();
     }
-    throw Exception('Error al cargar catálogo');
+    throw Exception('Error al cargar productos');
   }
 
   @override
@@ -87,7 +94,14 @@ class _CatalogScreenState extends State<CatalogScreen> {
             children: [
               IconButton(
                 icon: const Icon(Icons.shopping_cart),
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CartScreen(),
+                    ),
+                  );
+                },
               ),
               if (cartProvider.totalItemCount > 0)
                 Positioned(
