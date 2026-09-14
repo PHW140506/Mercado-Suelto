@@ -1,5 +1,5 @@
 import '../repositories/product_repository.dart';
-import '../../data/models/product_model.dart';
+import '../repositories/product_model.dart';
 
 class AddProductUseCase {
   final ProductRepository repository;

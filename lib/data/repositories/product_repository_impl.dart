@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../domain/repositories/product_repository.dart';
-import '../models/product_model.dart';
+import '../../domain/repositories/product_model.dart';
 
 class ProductRepositoryImpl implements ProductRepository {
   final http.Client client;
