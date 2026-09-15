@@ -3,9 +3,10 @@ import 'package:provider/provider.dart';
 import '../providers/product_provider.dart';
 import '../widgets/product_card.dart';
 import '../widgets/error_view.dart';
+import '../widgets/category_filter_chips.dart';
 
 class CatalogScreen extends StatefulWidget {
-  const CatalogScreen({Key? key}) : super(key: key);
+  const CatalogScreen({super.key});
 
   @override
   State<CatalogScreen> createState() => _CatalogScreenState();
@@ -16,7 +17,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ProductProvider>().fetchProducts();
+      context.read<ProductProvider>().initializeData();
     });
   }
 
@@ -29,41 +30,59 @@ class _CatalogScreenState extends State<CatalogScreen> {
       ),
       body: Consumer<ProductProvider>(
         builder: (context, provider, child) {
-          switch (provider.status) {
-            case ProductStatus.initial:
-            case ProductStatus.loading:
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
-
-            case ProductStatus.error:
-              return ErrorView(
-                message: provider.errorMessage,
-                onRetry: () => provider.fetchProducts(),
-              );
-
-            case ProductStatus.success:
-              if (provider.products.isEmpty) {
-                return const Center(
-                  child: Text('No hay productos disponibles.'),
-                );
-              }
-              return GridView.builder(
-                padding: const EdgeInsets.all(12),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.7,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                ),
-                itemCount: provider.products.length,
-                itemBuilder: (context, index) {
-                  return ProductCard(product: provider.products[index]);
+          return Column(
+            children: [
+              // Barra de filtros por categoría
+              CategoryFilterChips(
+                categories: provider.categories,
+                selectedCategory: provider.selectedCategory,
+                onSelected: (category) {
+                  provider.selectCategory(category);
                 },
-              );
-          }
+              ),
+              Expanded(
+                child: _buildBody(provider),
+              ),
+            ],
+          );
         },
       ),
     );
+  }
+
+  Widget _buildBody(ProductProvider provider) {
+    switch (provider.status) {
+      case ProductStatus.initial:
+      case ProductStatus.loading:
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+
+      case ProductStatus.error:
+        return ErrorView(
+          message: provider.errorMessage,
+          onRetry: () => provider.fetchProducts(),
+        );
+
+      case ProductStatus.success:
+        if (provider.products.isEmpty) {
+          return const Center(
+            child: Text('No hay productos disponibles en esta categoría.'),
+          );
+        }
+        return GridView.builder(
+          padding: const EdgeInsets.all(12),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.7,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+          ),
+          itemCount: provider.products.length,
+          itemBuilder: (context, index) {
+            return ProductCard(product: provider.products[index]);
+          },
+        );
+    }
   }
 }

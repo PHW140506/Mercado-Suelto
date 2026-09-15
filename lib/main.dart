@@ -4,22 +4,19 @@ import 'package:provider/provider.dart';
 
 import 'data/datasources/product_remote_data_source.dart';
 import 'data/repositories/product_repository_impl.dart';
-import 'domain/usecases/get_products_usecase.dart';
 import 'presentation/providers/product_provider.dart';
 import 'presentation/screens/catalog_screen.dart';
 
 void main() {
-  // Instanciamos las dependencias
   final httpClient = http.Client();
   final remoteDataSource = ProductRemoteDataSourceImpl(client: httpClient);
   final repository = ProductRepositoryImpl(remoteDataSource: remoteDataSource);
-  final getProductsUseCase = GetProductsUseCase(repository);
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => ProductProvider(getProductsUseCase: getProductsUseCase),
+          create: (_) => ProductProvider(repository: repository),
         ),
       ],
       child: const MyApp(),

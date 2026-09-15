@@ -4,6 +4,8 @@ import '../models/product_model.dart';
 
 abstract class ProductRemoteDataSource {
   Future<List<ProductModel>> getProducts();
+  Future<List<String>> getCategories();
+  Future<List<ProductModel>> getProductsByCategory(String category);
 }
 
 class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
@@ -22,6 +24,34 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
       return jsonList.map((json) => ProductModel.fromJson(json)).toList();
     } else {
       throw Exception('Error al conectar con el servidor (${response.statusCode})');
+    }
+  }
+
+  @override
+  Future<List<String>> getCategories() async {
+    final response = await client.get(
+      Uri.parse('https://fakestoreapi.com/products/categories'),
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = json.decode(response.body);
+      return jsonList.map((item) => item.toString()).toList();
+    } else {
+      throw Exception('Error al obtener categorías (${response.statusCode})');
+    }
+  }
+
+  @override
+  Future<List<ProductModel>> getProductsByCategory(String category) async {
+    final response = await client.get(
+      Uri.parse('https://fakestoreapi.com/products/category/$category'),
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = json.decode(response.body);
+      return jsonList.map((json) => ProductModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Error al filtrar productos (${response.statusCode})');
     }
   }
 }
