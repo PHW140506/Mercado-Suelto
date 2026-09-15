@@ -1,25 +1,19 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../../domain/repositories/product_repository.dart';
+import '../datasources/product_remote_data_source.dart';
 import '../models/product_model.dart';
 
 class ProductRepositoryImpl implements ProductRepository {
-  final http.Client client;
+  final ProductRemoteDataSource remoteDataSource;
 
-  ProductRepositoryImpl({required this.client});
+  ProductRepositoryImpl({required this.remoteDataSource});
+
+  @override
+  Future<List<ProductModel>> getProducts() async {
+    return await remoteDataSource.getProducts();
+  }
 
   @override
   Future<ProductModel> addProduct(ProductModel product) async {
-    final response = await client.post(
-      Uri.parse('https://fakestoreapi.com/products'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(product.toJson()),
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return ProductModel.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception('Error al registrar el producto en la API');
-    }
+    return product;
   }
 }

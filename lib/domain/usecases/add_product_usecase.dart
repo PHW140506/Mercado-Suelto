@@ -10,17 +10,17 @@ class AddProductUseCase {
     required String title,
     required double price,
     required String description,
-    required String imageUrl,
+    required String image,
     required String category,
   }) async {
     final newProduct = ProductModel(
+      id: DateTime.now().millisecondsSinceEpoch,
       title: title,
       price: price,
       description: description,
-      image: imageUrl,
+      image: image,
       category: category,
     );
-
     return await repository.addProduct(newProduct);
   }
 }

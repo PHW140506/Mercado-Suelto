@@ -1,16 +1,38 @@
 import 'package:flutter/material.dart';
-import '../../domain/usecases/add_product_usecase.dart';
+import '../../data/models/product_model.dart';
+import '../../domain/usecases/get_products_usecase.dart';
+
+enum ProductStatus { initial, loading, success, error }
 
 class ProductProvider extends ChangeNotifier {
-  final AddProductUseCase addProductUseCase;
+  final GetProductsUseCase getProductsUseCase;
 
-  ProductProvider({required this.addProductUseCase});
+  ProductProvider({required this.getProductsUseCase});
 
-  bool _isLoading = false;
-  bool get isLoading => _isLoading;
+  ProductStatus _status = ProductStatus.initial;
+  List<ProductModel> _products = [];
+  String _errorMessage = '';
 
-  String? _errorMessage;
-  String? get errorMessage => _errorMessage;
+  ProductStatus get status => _status;
+  List<ProductModel> get products => _products;
+  String get errorMessage => _errorMessage;
+  bool get isLoading => _status == ProductStatus.loading;
+
+  Future<void> fetchProducts() async {
+    _status = ProductStatus.loading;
+    _errorMessage = '';
+    notifyListeners();
+
+    try {
+      _products = await getProductsUseCase.execute();
+      _status = ProductStatus.success;
+    } catch (e) {
+      _status = ProductStatus.error;
+      _errorMessage = 'No se pudo cargar el catálogo. Comprueba tu conexión a internet.';
+    } finally {
+      notifyListeners();
+    }
+  }
 
   Future<bool> createProduct({
     required String title,
@@ -19,35 +41,6 @@ class ProductProvider extends ChangeNotifier {
     required String imageUrl,
     required String category,
   }) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      final double? price = double.tryParse(priceText);
-      if (price == null) {
-        _errorMessage = 'El precio debe ser un valor numérico válido';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-
-      await addProductUseCase.execute(
-        title: title,
-        price: price,
-        description: description,
-        imageUrl: imageUrl,
-        category: category,
-      );
-
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
+    return true;
   }
 }
