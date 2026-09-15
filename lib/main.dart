@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 
 import 'data/datasources/product_remote_data_source.dart';
 import 'data/repositories/product_repository_impl.dart';
+import 'domain/usecases/get_product_detail_usecase.dart';
 import 'presentation/providers/product_provider.dart';
+import 'presentation/providers/product_detail_provider.dart';
 import 'presentation/screens/catalog_screen.dart';
 
 void main() {
@@ -12,11 +14,18 @@ void main() {
   final remoteDataSource = ProductRemoteDataSourceImpl(client: httpClient);
   final repository = ProductRepositoryImpl(remoteDataSource: remoteDataSource);
 
+  final getProductDetailUseCase = GetProductDetailUseCase(repository);
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
           create: (_) => ProductProvider(repository: repository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ProductDetailProvider(
+            getProductDetailUseCase: getProductDetailUseCase,
+          ),
         ),
       ],
       child: const MyApp(),

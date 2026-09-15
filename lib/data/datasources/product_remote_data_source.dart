@@ -6,6 +6,7 @@ abstract class ProductRemoteDataSource {
   Future<List<ProductModel>> getProducts();
   Future<List<String>> getCategories();
   Future<List<ProductModel>> getProductsByCategory(String category);
+  Future<ProductModel> getProductById(int id);
 }
 
 class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
@@ -52,6 +53,18 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
       return jsonList.map((json) => ProductModel.fromJson(json)).toList();
     } else {
       throw Exception('Error al filtrar productos (${response.statusCode})');
+    }
+  }
+  @override
+  Future<ProductModel> getProductById(int id) async {
+    final response = await client.get(
+      Uri.parse('https://fakestoreapi.com/products/$id'),
+    );
+
+    if (response.statusCode == 200 && response.body.isNotEmpty && response.body != 'null') {
+      return ProductModel.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Producto no disponible');
     }
   }
 }
