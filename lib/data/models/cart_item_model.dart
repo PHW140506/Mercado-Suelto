@@ -18,11 +18,11 @@ class Product {
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'],
-      title: json['title'],
+      title: json['title'] ?? '',
       price: (json['price'] as num).toDouble(),
-      description: json['description'],
-      category: json['category'],
-      image: json['image'],
+      description: json['description'] ?? '',
+      category: json['category'] ?? '',
+      image: json['image'] ?? '',
     );
   }
 }
@@ -31,5 +31,8 @@ class CartItem {
   final Product product;
   int quantity;
 
-  CartItem({required this.product, this.quantity = 1});
+  CartItem({
+    required this.product,
+    this.quantity = 1,
+  });
 }
