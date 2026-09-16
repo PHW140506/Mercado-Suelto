@@ -2,13 +2,27 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../domain/repositories/cart_repository.dart';
 import '../models/cart_item_model.dart';
+import '../models/cart_model.dart';
 
 class CartRepositoryImpl implements CartRepository {
   final http.Client client;
   final Map<int, CartItem> _localCart = {};
 
-  CartRepositoryImpl({required this.client});
+  CartRepositoryImpl({http.Client? client}) : client = client ?? http.Client();
 
+  // --- Carritos Globales (Tarea 12) ---
+  @override
+  Future<List<CartModel>> getGlobalCarts() async {
+    final response = await client.get(Uri.parse('https://fakestoreapi.com/carts'));
+    if (response.statusCode == 200) {
+      List<dynamic> jsonList = json.decode(response.body);
+      return jsonList.map((json) => CartModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Error al cargar los carritos del servidor');
+    }
+  }
+
+  // --- Gestión local y remota del Carrito (Tarea 9 y 10) ---
   @override
   List<CartItem> getItems() => _localCart.values.toList();
 
@@ -40,8 +54,6 @@ class CartRepositoryImpl implements CartRepository {
       return false;
     }
   }
-
-  // --- Implementaciones para US10 ---
 
   @override
   void updateQuantityLocal(int productId, int quantity) {
