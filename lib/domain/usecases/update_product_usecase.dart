@@ -1,26 +1,28 @@
 import '../repositories/product_repository.dart';
 import '../../data/models/product_model.dart';
 
-class AddProductUseCase {
+class UpdateProductUseCase {
   final ProductRepository repository;
 
-  AddProductUseCase(this.repository);
+  UpdateProductUseCase(this.repository);
 
   Future<ProductModel> execute({
+    required int id,
     required String title,
     required double price,
     required String description,
-    required String image,
+    required String imageUrl,
     required String category,
   }) async {
-    final newProduct = ProductModel(
-      id: DateTime.now().millisecondsSinceEpoch,
+    final updatedProduct = ProductModel(
+      id: id,
       title: title,
       price: price,
       description: description,
-      image: image,
+      image: imageUrl,
       category: category,
     );
-    return await repository.addProduct(newProduct);
+
+    return await repository.updateProduct(updatedProduct);
   }
 }
