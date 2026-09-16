@@ -30,4 +30,20 @@ class ProductRepositoryImpl implements ProductRepository {
   Future<ProductModel> getProductById(int id) async {
     return await remoteDataSource.getProductById(id);
   }
+
+
+  @override
+  Future<ProductModel> updateProduct(ProductModel product) async {
+    final response = await client.put(
+      Uri.parse('https://fakestoreapi.com/products/${product.id}'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(product.toJson()),
+    );
+
+    if (response.statusCode == 200) {
+      return ProductModel.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('Error al actualizar el producto en la API');
+    }
+  }
 }
