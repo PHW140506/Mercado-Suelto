@@ -1,20 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../data/models/product_model.dart';
+import '../../core/user_session.dart';
+import '../providers/product_detail_provider.dart';
 import '../providers/product_provider.dart';
 
-class ProductDetailScreen extends StatelessWidget {
-  final ProductModel product;
-  final String userRole; // Ej: 'Admin', 'Cliente', 'Auditor'
+class ProductDetailScreen extends StatefulWidget {
+  final int productId;
 
-  const ProductDetailScreen({
-    super.key,
-    required this.product,
-    required this.userRole,
-  });
+  const ProductDetailScreen({super.key, required this.productId});
 
-  /// Muestra el cuadro de diálogo de confirmación obligatorio (Escenarios 1 y 2)
-  void _confirmDelete(BuildContext context) {
+  @override
+  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+}
+
+class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProductDetailProvider>().loadProductDetail(widget.productId);
+    });
+  }
+
+  void _showErrorAndPop(String message) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Alerta'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
+              },
+              child: const Text('Aceptar'),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  void _confirmDelete(BuildContext context, int productId) {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
@@ -22,14 +52,13 @@ class ProductDetailScreen extends StatelessWidget {
         content: const Text('¿Estás seguro de eliminar este producto?'),
         actions: [
           TextButton(
-            onPressed: () =>
-                Navigator.of(dialogCtx).pop(), // Cancela sin petición
+            onPressed: () => Navigator.of(dialogCtx).pop(),
             child: const Text('Cancelar'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.of(dialogCtx).pop(); // Cierra el modal
-              await _executeDelete(context);
+              Navigator.of(dialogCtx).pop();
+              await _executeDelete(context, productId);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Eliminar'),
@@ -39,37 +68,31 @@ class ProductDetailScreen extends StatelessWidget {
     );
   }
 
-  /// Ejecuta la acción DELETE a través del Provider
-  Future<void> _executeDelete(BuildContext context) async {
-    // Escenario 3: Bloqueo de seguridad adicional a nivel de código
-    if (userRole != 'Admin') {
+  Future<void> _executeDelete(BuildContext context, int productId) async {
+    if (UserSession.currentRole != UserRole.admin) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Acceso denegado: Operación no permitida'),
-        ),
+        const SnackBar(content: Text('Acceso denegado: Operación no permitida')),
       );
       return;
     }
 
     final provider = Provider.of<ProductProvider>(context, listen: false);
-    final success = await provider.removeProduct(product.id ?? 0);
+    final success = await provider.removeProduct(productId);
 
     if (!context.mounted) return;
 
     if (success) {
-      // Escenario 1: Mostrar Snackbar de éxito y redirigir
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Producto eliminado exitosamente del catálogo'),
           backgroundColor: Colors.green,
         ),
       );
-      Navigator.of(context).pop(); // Regresa al catálogo general
+      Navigator.of(context).pop();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-              Text(provider.errorMessage ?? 'Error al eliminar el producto'),
+          content: Text(provider.errorMessage.isNotEmpty ? provider.errorMessage : 'Error al eliminar el producto'),
           backgroundColor: Colors.red,
         ),
       );
@@ -78,56 +101,86 @@ class ProductDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = context.watch<ProductProvider>().isLoading;
+    return Consumer<ProductDetailProvider>(
+      builder: (context, provider, child) {
+        if (provider.status == DetailStatus.error) {
+          _showErrorAndPop(provider.errorMessage);
+        }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(product.title),
-        actions: [
-          // Escenario 3: El botón solo se renderiza si el rol es Admin
-          if (userRole == 'Admin')
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: isLoading ? null : () => _confirmDelete(context),
-            ),
-        ],
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Image.network(
-                      product.image,
-                      height: 200,
-                      errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.image_not_supported, size: 100),
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(provider.product?.title ?? 'Detalle del producto'),
+          ),
+          body: provider.status == DetailStatus.loading
+              ? const Center(child: CircularProgressIndicator())
+              : provider.product == null
+                  ? const SizedBox.shrink()
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Center(
+                            child: Image.network(
+                              provider.product!.image,
+                              height: 250,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            provider.product!.title,
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          const SizedBox(height: 8),
+                          Chip(
+                            label: Text(provider.product!.category.toUpperCase()),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '\$${provider.product!.price.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            provider.product!.description,
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 24),
+                          if (UserSession.currentRole == UserRole.admin) ...[
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {},
+                                    icon: const Icon(Icons.edit),
+                                    label: const Text('Editar'),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.redAccent,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    onPressed: () => _confirmDelete(context, widget.productId),
+                                    icon: const Icon(Icons.delete),
+                                    label: const Text('Eliminar'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    product.title,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '\$${product.price}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Chip(label: Text(product.category)),
-                  const SizedBox(height: 16),
-                  Text(product.description),
-                ],
-              ),
-            ),
+        );
+      },
     );
   }
 }
