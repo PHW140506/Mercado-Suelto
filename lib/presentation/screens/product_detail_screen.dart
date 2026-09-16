@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/user_session.dart';
 import '../providers/product_detail_provider.dart';
+import '../providers/product_provider.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final int productId;
@@ -32,8 +33,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(ctx).pop(); // Cerrar diálogo
-                Navigator.of(context).pop(); // Regresar al catálogo
+                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
               },
               child: const Text('Aceptar'),
             ),
@@ -41,6 +42,61 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
       );
     });
+  }
+
+  void _confirmDelete(BuildContext context, int productId) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Confirmar eliminación'),
+        content: const Text('¿Estás seguro de eliminar este producto?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(dialogCtx).pop();
+              await _executeDelete(context, productId);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _executeDelete(BuildContext context, int productId) async {
+    if (UserSession.currentRole != UserRole.admin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Acceso denegado: Operación no permitida')),
+      );
+      return;
+    }
+
+    final provider = Provider.of<ProductProvider>(context, listen: false);
+    final success = await provider.removeProduct(productId);
+
+    if (!context.mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Producto eliminado exitosamente del catálogo'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.of(context).pop();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.errorMessage.isNotEmpty ? provider.errorMessage : 'Error al eliminar el producto'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -95,8 +151,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 24),
-                          
-                          // Regla de Negocio: Exclusión condicional según el rol de sesión local
                           if (UserSession.currentRole == UserRole.admin) ...[
                             Row(
                               children: [
@@ -114,7 +168,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       backgroundColor: Colors.redAccent,
                                       foregroundColor: Colors.white,
                                     ),
-                                    onPressed: () {},
+                                    onPressed: () => _confirmDelete(context, widget.productId),
                                     icon: const Icon(Icons.delete),
                                     label: const Text('Eliminar'),
                                   ),

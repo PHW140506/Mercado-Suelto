@@ -46,4 +46,17 @@ class ProductRepositoryImpl implements ProductRepository {
       throw Exception('Error al actualizar el producto en la API');
     }
   }
+
+  @override
+  Future<bool> deleteProduct(int id) async {
+    final response = await client.delete(
+      Uri.parse('https://fakestoreapi.com/products/$id'),
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      throw Exception('Error al eliminar el producto en la API');
+    }
+  }
 }

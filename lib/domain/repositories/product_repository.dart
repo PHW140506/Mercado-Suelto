@@ -7,4 +7,5 @@ abstract class ProductRepository {
   Future<ProductModel> getProductById(int id);
   Future<ProductModel> addProduct(ProductModel product);
   Future<ProductModel> updateProduct(ProductModel product);
+  Future<bool> deleteProduct(int id);
 }

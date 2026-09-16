@@ -3,6 +3,7 @@ import '../../data/models/product_model.dart';
 import '../../domain/repositories/product_repository.dart';
 import '../../domain/usecases/add_product_usecase.dart';
 import '../../domain/usecases/update_product_usecase.dart';
+import '../../domain/usecases/delete_product_usecase.dart';
 
 enum ProductStatus { initial, loading, success, error }
 
@@ -10,11 +11,13 @@ class ProductProvider extends ChangeNotifier {
   final ProductRepository? repository;
   final AddProductUseCase? addProductUseCase;
   final UpdateProductUseCase? updateProductUseCase;
+  final DeleteProductUseCase? deleteProductUseCase;
 
   ProductProvider({
     this.repository,
     this.addProductUseCase,
     this.updateProductUseCase,
+    this.deleteProductUseCase,
   });
 
   ProductStatus _status = ProductStatus.initial;
@@ -31,7 +34,6 @@ class ProductProvider extends ChangeNotifier {
   String get errorMessage => _errorMessage;
   bool get isLoading => _isLoading || _status == ProductStatus.loading;
 
-  // Cargar categorías y productos iniciales
   Future<void> initializeData() async {
     if (repository == null) return;
     _status = ProductStatus.loading;
@@ -49,13 +51,10 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  // Filtrar por categoría o restablecer a todos
   Future<void> selectCategory(String category) async {
     if (_selectedCategory == category || repository == null) return;
 
     _selectedCategory = category;
-    
-    // Regla de negocio: Limpiar arreglo en memoria local para evitar mostrar datos viejos
     _products = [];
     _status = ProductStatus.loading;
     notifyListeners();
@@ -63,7 +62,6 @@ class ProductProvider extends ChangeNotifier {
     await fetchProducts();
   }
 
-  // Obtener productos según la categoría seleccionada
   Future<void> fetchProducts() async {
     if (repository == null) return;
     _status = ProductStatus.loading;
@@ -85,7 +83,6 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  // Método para crear producto
   Future<bool> createProduct({
     required String title,
     required String priceText,
@@ -96,7 +93,6 @@ class ProductProvider extends ChangeNotifier {
     return true;
   }
 
-  // Método para editar producto (US07)
   Future<bool> editProduct({
     required int id,
     required String title,
@@ -128,6 +124,25 @@ class ProductProvider extends ChangeNotifier {
         category: category,
       );
 
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> removeProduct(int id) async {
+    if (deleteProductUseCase == null) return false;
+    _isLoading = true;
+    _errorMessage = '';
+    notifyListeners();
+
+    try {
+      await deleteProductUseCase!.execute(id);
       _isLoading = false;
       notifyListeners();
       return true;
