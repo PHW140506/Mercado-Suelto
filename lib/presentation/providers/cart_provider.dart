@@ -100,4 +100,8 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
     return success;
   }
+  void clearCart() {
+    repository.getItems().clear();
+    notifyListeners();
+  }
 }

@@ -1,11 +1,17 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../../domain/repositories/product_repository.dart';
 import '../datasources/product_remote_data_source.dart';
 import '../models/product_model.dart';
 
 class ProductRepositoryImpl implements ProductRepository {
   final ProductRemoteDataSource remoteDataSource;
+  final http.Client client;
 
-  ProductRepositoryImpl({required this.remoteDataSource});
+  ProductRepositoryImpl({
+    required this.remoteDataSource,
+    http.Client? client,
+  }) : client = client ?? http.Client();
 
   @override
   Future<List<ProductModel>> getProducts() async {
@@ -26,11 +32,11 @@ class ProductRepositoryImpl implements ProductRepository {
   Future<ProductModel> addProduct(ProductModel product) async {
     return product;
   }
+
   @override
   Future<ProductModel> getProductById(int id) async {
     return await remoteDataSource.getProductById(id);
   }
-
 
   @override
   Future<ProductModel> updateProduct(ProductModel product) async {

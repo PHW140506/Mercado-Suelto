@@ -9,7 +9,6 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.user;
 
     return PopScope(
       canPop: false, // Bloquear el botón físico atrás si está autenticado
@@ -38,14 +37,14 @@ class HomeScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '¡Bienvenido, ${user?.username ?? 'Usuario'}!',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Rol Asignado: ${user?.role.name.toUpperCase() ?? 'S/D'}',
-                style: const TextStyle(fontSize: 16, color: Colors.blueAccent),
-              ),
+            '¡Bienvenido, ${authProvider.username.isNotEmpty ? authProvider.username : 'Usuario'}!',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Rol Asignado: ${authProvider.userRole.isNotEmpty ? authProvider.userRole.toUpperCase() : 'S/D'}',
+            style: const TextStyle(fontSize: 16, color: Colors.blueAccent),
+          ),
             ],
           ),
         ),

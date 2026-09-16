@@ -232,7 +232,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                         final scaffoldMessenger = ScaffoldMessenger.of(context);
                                         
                                         final cartProduct = Product(
-                                          id: product.id ?? 0,
+                                          id: product.id,
                                           title: product.title,
                                           price: product.price,
                                           description: product.description,

@@ -1,7 +1,30 @@
-enum UserRole { admin, client, auditor }
+enum UserRole { admin, cliente, auditor, ninguno }
 
 class UserSession {
-  // Simulación de variable de sesión local
-  // Cambia este valor a UserRole.client o UserRole.auditor para probar las distintas vistas
-  static UserRole currentRole = UserRole.client;
+  static UserRole currentRole = UserRole.ninguno;
+  static String currentUsername = '';
+  static String token = '';
+
+  static void setSession({
+    required String username,
+    required String roleStr,
+    required String userToken,
+  }) {
+    currentUsername = username;
+    token = userToken;
+    final cleanRole = roleStr.toLowerCase().trim();
+    if (cleanRole.contains('admin')) {
+      currentRole = UserRole.admin;
+    } else if (cleanRole.contains('audit')) {
+      currentRole = UserRole.auditor;
+    } else {
+      currentRole = UserRole.cliente;
+    }
+  }
+
+  static void clear() {
+    currentRole = UserRole.ninguno;
+    currentUsername = '';
+    token = '';
+  }
 }

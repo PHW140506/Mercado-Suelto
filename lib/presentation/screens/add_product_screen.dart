@@ -90,7 +90,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(provider.errorMessage ?? 'Error al guardar producto'),
+          content: Text(provider.errorMessage.isNotEmpty ? provider.errorMessage : 'Error en la operación')
         ),
       );
     }

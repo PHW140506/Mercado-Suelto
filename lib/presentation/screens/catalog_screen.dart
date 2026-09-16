@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/user_session.dart';
 import '../providers/product_provider.dart';
 import '../widgets/product_card.dart';
 import '../widgets/error_view.dart';
 import '../widgets/category_filter_chips.dart';
+import 'add_product_screen.dart';
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
@@ -23,6 +25,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isAdmin = UserSession.currentRole == UserRole.admin;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Catálogo de Productos'),
@@ -32,7 +36,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
         builder: (context, provider, child) {
           return Column(
             children: [
-              // Barra de filtros por categoría
+              // US04: Selector de filtros por categoría
               CategoryFilterChips(
                 categories: provider.categories,
                 selectedCategory: provider.selectedCategory,
@@ -47,6 +51,23 @@ class _CatalogScreenState extends State<CatalogScreen> {
           );
         },
       ),
+      // US06: Agregar nuevo producto (Exclusivo Administrador)
+      floatingActionButton: isAdmin
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AddProductScreen(userRole: 'Admin'),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Nuevo Producto'),
+              backgroundColor: Colors.indigo,
+              foregroundColor: Colors.white,
+            )
+          : null,
     );
   }
 

@@ -67,7 +67,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
     final provider = Provider.of<ProductProvider>(context, listen: false);
     final success = await provider.editProduct(
-      id: widget.product.id ?? 0,
+      id: widget.product.id,
       title: _titleController.text.trim(),
       priceText: _priceController.text.trim(),
       description: _descriptionController.text.trim(),
@@ -101,7 +101,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content:
-              Text(provider.errorMessage ?? 'Error al actualizar producto'),
+              Text(provider.errorMessage.isNotEmpty ? provider.errorMessage : 'Error en la operación')
         ),
       );
     }
