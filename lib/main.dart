@@ -20,8 +20,16 @@ import 'domain/usecases/logout_usecase.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/screens/login_screen.dart';
 
-// Carritos globales (Tarea 12)
+// Carrito de compras local y remoto (Tarea 9 y Tarea 10)
+import 'data/models/cart_item_model.dart';
 import 'data/repositories/cart_repository_impl.dart';
+import 'domain/usecases/add_to_cart_use_case.dart';
+import 'domain/usecases/remove_from_cart_use_case.dart';
+import 'domain/usecases/update_cart_quantity_use_case.dart';
+import 'presentation/providers/cart_provider.dart';
+import 'presentation/screens/cart_screen.dart';
+
+// Carritos globales (Tarea 12)
 import 'domain/usecases/get_global_carts_usecase.dart';
 import 'presentation/providers/global_carts_provider.dart';
 import 'presentation/screens/global_carts_screen.dart';
@@ -50,8 +58,13 @@ void main() {
   final loginUseCase = LoginUseCase(authRepository);
   final logoutUseCase = LogoutUseCase(authRepository);
 
-  // Dependencias de Carritos
-  final cartRepository = CartRepositoryImpl();
+  // Repositorio unificado de Carrito
+  final cartRepository = CartRepositoryImpl(client: httpClient);
+
+  // Casos de uso de Carrito
+  final addToCartUseCase = AddToCartUseCase(cartRepository);
+  final updateCartQuantityUseCase = UpdateCartQuantityUseCase(cartRepository);
+  final removeFromCartUseCase = RemoveFromCartUseCase(cartRepository);
   final getGlobalCartsUseCase = GetGlobalCartsUseCase(cartRepository);
 
   runApp(
@@ -69,6 +82,14 @@ void main() {
           create: (_) => AuthProvider(
             loginUseCase: loginUseCase,
             logoutUseCase: logoutUseCase,
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => CartProvider(
+            repository: cartRepository,
+            addToCartUseCase: addToCartUseCase,
+            updateCartQuantityUseCase: updateCartQuantityUseCase,
+            removeFromCartUseCase: removeFromCartUseCase,
           ),
         ),
         ChangeNotifierProvider(
@@ -103,11 +124,40 @@ class MainMenuScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
+    final cartProvider = context.watch<CartProvider>();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mercado Suelto - Menú Principal'),
         actions: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.shopping_cart),
+                tooltip: 'Mi Carrito',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CartScreen()),
+                  );
+                },
+              ),
+              if (cartProvider.totalItemCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: CircleAvatar(
+                    radius: 9,
+                    backgroundColor: Colors.red,
+                    child: Text(
+                      '${cartProvider.totalItemCount}',
+                      style: const TextStyle(fontSize: 11, color: Colors.white),
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
             icon: Icon(authProvider.isAuthenticated ? Icons.logout : Icons.login),
             tooltip: authProvider.isAuthenticated ? 'Cerrar sesión' : 'Iniciar sesión',
@@ -136,7 +186,7 @@ class MainMenuScreen extends StatelessWidget {
               ),
               const SizedBox(height: 30),
 
-              // Botón Catálogo General (sp1)
+              // Botón Catálogo General
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -150,6 +200,27 @@ class MainMenuScreen extends StatelessWidget {
                   label: const Text('Ver Catálogo de Productos'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.indigo,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Botón Mi Carrito de Compras (Task 10)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CartScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.shopping_bag_outlined),
+                  label: const Text('Mi Carrito de Compras'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
@@ -178,7 +249,7 @@ class MainMenuScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // Botón Directorio de Usuarios (Tarea 11)
+              // Botón Directorio de Usuarios
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -201,7 +272,7 @@ class MainMenuScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // Botón Carritos Globales (Tarea 12)
+              // Botón Carritos Globales
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
