@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/user_session.dart';
+import '../../data/models/cart_item_model.dart';
+import '../providers/cart_provider.dart';
 import '../providers/product_detail_provider.dart';
 import '../providers/product_provider.dart';
+import 'cart_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final int productId;
@@ -14,6 +17,8 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  int _selectedQuantity = 1;
+
   @override
   void initState() {
     super.initState();
@@ -101,19 +106,55 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cartProvider = Provider.of<CartProvider>(context);
+    final isAuditor = cartProvider.userRole == 'Auditor';
+
     return Consumer<ProductDetailProvider>(
       builder: (context, provider, child) {
         if (provider.status == DetailStatus.error) {
           _showErrorAndPop(provider.errorMessage);
         }
 
+        final product = provider.product;
+
         return Scaffold(
           appBar: AppBar(
-            title: Text(provider.product?.title ?? 'Detalle del producto'),
+            title: Text(product?.title ?? 'Detalle del producto'),
+            actions: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.shopping_cart),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CartScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  if (cartProvider.totalItemCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: CircleAvatar(
+                        radius: 9,
+                        backgroundColor: Colors.red,
+                        child: Text(
+                          '${cartProvider.totalItemCount}',
+                          style: const TextStyle(fontSize: 11, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
           ),
           body: provider.status == DetailStatus.loading
               ? const Center(child: CircularProgressIndicator())
-              : provider.product == null
+              : product == null
                   ? const SizedBox.shrink()
                   : SingleChildScrollView(
                       padding: const EdgeInsets.all(16.0),
@@ -122,35 +163,122 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         children: [
                           Center(
                             child: Image.network(
-                              provider.product!.image,
-                              height: 250,
+                              product.image,
+                              height: 220,
                               fit: BoxFit.contain,
                             ),
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            provider.product!.title,
+                            product.title,
                             style: Theme.of(context).textTheme.headlineSmall,
                           ),
                           const SizedBox(height: 8),
                           Chip(
-                            label: Text(provider.product!.category.toUpperCase()),
+                            label: Text(product.category.toUpperCase()),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '\$${provider.product!.price.toStringAsFixed(2)}',
+                            '\$${product.price.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
                               color: Colors.green,
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           Text(
-                            provider.product!.description,
+                            product.description,
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 24),
+
+                          // Sección para agregar al carrito
+                          if (!isAuditor) ...[
+                            Row(
+                              children: [
+                                const Text('Cantidad:', style: TextStyle(fontSize: 16)),
+                                const SizedBox(width: 16),
+                                IconButton(
+                                  icon: const Icon(Icons.remove_circle_outline),
+                                  onPressed: _selectedQuantity > 1
+                                      ? () => setState(() => _selectedQuantity--)
+                                      : null,
+                                ),
+                                Text(
+                                  '$_selectedQuantity',
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.add_circle_outline),
+                                  onPressed: () => setState(() => _selectedQuantity++),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: ElevatedButton.icon(
+                                icon: cartProvider.isLoading
+                                    ? const SizedBox.shrink()
+                                    : const Icon(Icons.shopping_cart_outlined),
+                                label: cartProvider.isLoading
+                                    ? const CircularProgressIndicator(color: Colors.white)
+                                    : const Text('Agregar al carrito', style: TextStyle(fontSize: 16)),
+                                onPressed: cartProvider.isLoading
+                                    ? null
+                                    : () async {
+                                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+                                        
+                                        final cartProduct = Product(
+                                          id: product.id ?? 0,
+                                          title: product.title,
+                                          price: product.price,
+                                          description: product.description,
+                                          category: product.category,
+                                          image: product.image,
+                                        );
+
+                                        final success = await cartProvider.addToCart(
+                                          cartProduct,
+                                          _selectedQuantity,
+                                        );
+
+                                        if (!mounted) return;
+
+                                        scaffoldMessenger.showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              success
+                                                  ? 'Producto añadido al carrito'
+                                                  : 'Error al procesar en servidor',
+                                            ),
+                                            backgroundColor: success ? Colors.green : Colors.red,
+                                          ),
+                                        );
+                                      },
+                              ),
+                            ),
+                          ] else ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                'Modo Auditor: Botón deshabilitado (solo lectura)',
+                                style: TextStyle(color: Colors.brown, fontWeight: FontWeight.w600),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+
+                          const SizedBox(height: 24),
+
+                          // Opciones exclusivas de Administrador (Editar / Eliminar)
                           if (UserSession.currentRole == UserRole.admin) ...[
                             Row(
                               children: [
